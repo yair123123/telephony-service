@@ -1,4 +1,5 @@
 from app.clients.core_client import CoreClient
+from app.config import Settings
 from app.domain.enums.call_direction import CallDirection
 from app.domain.enums.call_state import CallState
 from app.domain.enums.routing_action import RoutingAction
@@ -21,6 +22,7 @@ class IncomingCallService:
         response_builder: TelephonyResponseBuilder,
         bridge_service: CallBridgeService,
         state_machine: StateMachineService,
+        settings: Settings,
     ):
         self.session_repo = session_repo
         self.event_repo = event_repo
@@ -29,6 +31,13 @@ class IncomingCallService:
         self.response_builder = response_builder
         self.bridge_service = bridge_service
         self.state_machine = state_machine
+        self.settings = settings
+
+    def _url(self, path: str) -> str:
+        base = str(self.settings.base_url).rstrip("/")
+        if not path.startswith("/"):
+            path = f"/{path}"
+        return f"{base}{path}"
 
     async def handle_incoming(self, payload: VoiceWebhookPayload) -> str:
         from_phone = self.phone_normalizer.normalize(payload.from_phone)
@@ -52,13 +61,16 @@ class IncomingCallService:
             self.state_machine.set_state(session, CallState.ASK_ORIGIN)
             return self.response_builder.say_and_record(
                 "Welcome. Please say your pickup location after the beep.",
-                "/webhooks/voice/recordings/origin",
+                self._url("/webhooks/voice/recordings/origin"),
             )
 
         if decision.action == RoutingAction.PLAY_SEARCHING_MESSAGE:
             self.state_machine.set_state(session, CallState.SEARCHING_DRIVER_MESSAGE)
             message = decision.message or "We are searching for a driver. Press 1 to cancel."
-            return self.response_builder.say_and_gather_digits(message, "/webhooks/voice/dtmf/confirm")
+            return self.response_builder.say_and_gather_digits(
+                message,
+                self._url("/webhooks/voice/dtmf/confirm"),
+            )
 
         if decision.action == RoutingAction.CONNECT_TO_DRIVER and decision.target_phone:
             self.state_machine.set_state(session, CallState.CONNECT_DRIVER)

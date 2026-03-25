@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     app_name: str = "telephony-service"
     app_env: str = "dev"
     log_level: str = "INFO"
-
+    base_url: str = "http://localhost:8000"
     database_url: str = "sqlite:///./telephony.db"
     core_backend_base_url: str = "http://localhost:8001"
     core_backend_timeout_seconds: float = 10.0

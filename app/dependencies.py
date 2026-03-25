@@ -27,6 +27,7 @@ def get_incoming_call_service(
     session_repo = CallSessionRepository(db)
     response_builder = TelephonyResponseBuilder()
     return IncomingCallService(
+        settings=get_settings(),
         session_repo=session_repo,
         event_repo=CallEventRepository(db),
         core_client=core_client,
